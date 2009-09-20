@@ -32,8 +32,8 @@ config = YAML.load_file("config.yaml")
 sid = vkontakte_login(config[:vkontakte][:email], config[:vkontakte][:password])
 
 last_run_time = Time.at(open("last_run_time.txt").read.to_s.to_i) rescue nil
+json = open("http://twitter.com/statuses/user_timeline.json?screen_name=#{config[:twitter][:screen_name]}&count=#{last_run_time.nil? ? 1 : 5}").read.to_s
 
-json = open("http://twitter.com/statuses/user_timeline.json?screen_name=#{config[:twitter][:screen_name]}&count=3").read.to_s
 posts = JSON.parse(json)
 last_post_created_at = nil
 

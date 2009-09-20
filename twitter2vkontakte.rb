@@ -8,6 +8,7 @@ require 'uri'
 require 'yaml'
 require 'time'
 require 'iconv'
+require 'cgi'
 
 def vkontakte_login(email, password)
   res = Net::HTTP.post_form(URI.parse("http://login.vk.com/"), { "email" => email, "pass" => password, "vk" => '', "act" => 'login' })
@@ -42,7 +43,7 @@ posts.each do |p|
   created_at = Time.parse(p['created_at'])
 
   if last_run_time.nil? || created_at > last_run_time
-    status = "[twitter] " + p['text']
+    status = "[twitter] " + CGI.unescapeHTML(p['text'])
     status = status[0...157] + "..." if status.length > 160
 
     sid ||= vkontakte_login(config[:vkontakte][:email], config[:vkontakte][:password])

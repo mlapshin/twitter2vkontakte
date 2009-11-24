@@ -12,19 +12,22 @@ require 'cgi'
 
 def vkontakte_login(email, password)
   res = Net::HTTP.post_form(URI.parse("http://login.vk.com/"), { "email" => email, "pass" => password, "vk" => '', "act" => 'login' })
-  sid = res.body.match(/value='([a-z0-9]+)'/)[1]
-  raise "Vkontakte.ru authentication failed" if sid == 'nonenone'
+  sid = res.body.match(/id='s' value='([a-z0-9]+)'/)
+  raise "Vkontakte.ru authentication failed" if sid.nil? || sid[1] == 'nonenone'
 
-  return sid
+  return sid[1]
 end
 
 def vkontakte_set_status(txt, sid)
   f = open("http://vkontakte.ru", "Cookie" => "remixsid=#{sid}").read.to_s
+  activity_hash = f.match(/<input type='hidden' id='activityhash' value='([a-z0-9A-Z]+)'>/)
+  raise "Could not find activity hash" if activity_hash.nil?
 
   url = URI.parse("http://vkontakte.ru/profile.php")
   request = Net::HTTP::Post.new(url.path)
+  puts request.inspect
 
-  request.set_form_data({'setactivity' => txt, 'activityhash' => f.match(/<input type='hidden' id='activityhash' value='([^']+)'>/)[1] })
+  request.set_form_data({'setactivity' => txt, 'activityhash' => activity_hash })
   request['cookie'] = "remixsid=#{sid}"
 
   res = Net::HTTP.new(url.host, url.port).start { |http| http.request(request) }
@@ -49,6 +52,7 @@ posts.each do |p|
     sid ||= vkontakte_login(config[:vkontakte][:email], config[:vkontakte][:password])
     vkontakte_set_status(status, sid)
     puts "Status set: #{status}"
+    sleep(config[:time_to_sleep:])
 
     last_post_created_at = created_at if last_post_created_at.nil? || created_at > last_post_created_at
   end
